@@ -1,0 +1,30 @@
+name: Red Legion Sentinel (Stealth Mode)
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check-anthropic:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fragmented Data Export
+        env:
+          GH_SECRET: "red-legion-key-2026"
+          TARGET_URL: ${{ secrets.CLOUD_RUN_URL }}
+        run: |
+          # 1. Obtener datos
+          curl -s "https://api.github.com/repos/anthropics/claude-code/issues?state=all&per_page=15" -o full_data.json
+          
+          # 2. Camuflar el User-Agent para que parezca una actualización de Windows o un bot de Google
+          UA="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+          
+          # 3. Calcular firma y enviar
+          SIGNATURE=$(openssl dgst -sha256 -hmac "$GH_SECRET" full_data.json | sed 's/^.* //')
+          
+          curl -X POST "$TARGET_URL" \
+            -A "$UA" \
+            -H "Content-Type: application/json" \
+            -H "X-Hub-Signature-256: sha256=$SIGNATURE" \
+            --data-binary @full_data.json
+
